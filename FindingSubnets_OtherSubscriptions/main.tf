@@ -1,3 +1,27 @@
+# Find pod RGs - Dev
+data "azapi_resource_list" "dev_pod_rgs" {
+  provider               = azapi.dev
+  type                   = "Microsoft.Resources/resourceGroups@2022-09-01"
+  parent_id              = "/subscriptions/${local.account_id_dev}"
+  response_export_values = ["*"]
+}
+
+# Find pod RGs - Stg
+data "azapi_resource_list" "stg_pod_rgs" {
+  provider               = azapi.stg
+  type                   = "Microsoft.Resources/resourceGroups@2022-09-01"
+  parent_id              = "/subscriptions/${local.account_id_stg}"
+  response_export_values = ["*"]
+}
+
+# Find pod RGs - Prd
+data "azapi_resource_list" "prd_pod_rgs" {
+  provider               = azapi.prd
+  type                   = "Microsoft.Resources/resourceGroups@2022-09-01"
+  parent_id              = "/subscriptions/${local.account_id_prd}"
+  response_export_values = ["*"]
+}
+
 # Identify all RG names, filter by regex string
 locals {
   dev_pod_rg_names = [for rg in jsondecode(data.azapi_resource_list.dev_pod_rgs.output).value[*].name : rg if can(regex("p\\d\\d\\d-net", rg))]
