@@ -15,30 +15,30 @@ data "azapi_resource_list" "subscription_rgs" {
 
 # Filter list for VM RG name
 locals {
-  ras_rg = [for rg in jsondecode(data.azapi_resource_list.subscription_rgs.output).value[*].name : rg if can(regex(local.rg_name, rg))]
+  rg = [for rg in jsondecode(data.azapi_resource_list.subscription_rgs.output).value[*].name : rg if can(regex(local.rg_name, rg))]
 }
 
-# Find all RAS VMs in GW Subnet using AZAPI
-data "azapi_resource_list" "ras_server" {
-  count                  = length(local.ras_rg) == 0 ? 0 : 1
+# Find all VMs in GW Subnet using AZAPI
+data "azapi_resource_list" "server" {
+  count                  = length(local.rg) == 0 ? 0 : 1
   type                   = "Microsoft.Compute/virtualMachines@2024-03-01"
   parent_id              = "/subscriptions/${data.azurerm_subscription.current.subscription_id}/resourceGroups/${local.rg_name}"
   response_export_values = ["*"]
 }
 
-# Filter for the Ras GW hosts
+# Filter for the GW hosts
 locals {
-  ras_server_names = length(local.ras_rg) == 0 ? [] : [for vm in jsondecode(data.azapi_resource_list.ras_server[0].output).value[*].name : vm if can(regex("ras", vm))]
+  server_names = length(local.rg) == 0 ? [] : [for vm in jsondecode(data.azapi_resource_list.server[0].output).value[*].name : vm if can(regex("ras", vm))]
 }
 
 # Look up the GW host info. If there are none, no hosts will be added to backend pool
 data "azurerm_virtual_machine" "gw_host" {
   # Iterate over gateway server names. If none, this resource isn't built
-  for_each            = length(local.ras_server_names) == 0 ? toset([]) : toset(local.ras_server_names)
+  for_each            = length(local.server_names) == 0 ? toset([]) : toset(local.server_names)
   name                = each.value
   resource_group_name = local.rg_name
 }
 
 locals {
-  rasgw_private_ips = length(local.ras_server_names) == 0 ? [] : [for vm in data.azurerm_virtual_machine.gw_host : vm.private_ip_address]
+  gw_private_ips = length(local.server_names) == 0 ? [] : [for vm in data.azurerm_virtual_machine.gw_host : vm.private_ip_address]
 }

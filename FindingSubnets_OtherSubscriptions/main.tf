@@ -1,21 +1,21 @@
-# Find pod RGs - Dev
-data "azapi_resource_list" "dev_pod_rgs" {
+# Find RGs - Dev
+data "azapi_resource_list" "dev_rgs" {
   provider               = azapi.dev
   type                   = "Microsoft.Resources/resourceGroups@2022-09-01"
   parent_id              = "/subscriptions/${local.account_id_dev}"
   response_export_values = ["*"]
 }
 
-# Find pod RGs - Stg
-data "azapi_resource_list" "stg_pod_rgs" {
+# Find RGs - Stg
+data "azapi_resource_list" "stg_rgs" {
   provider               = azapi.stg
   type                   = "Microsoft.Resources/resourceGroups@2022-09-01"
   parent_id              = "/subscriptions/${local.account_id_stg}"
   response_export_values = ["*"]
 }
 
-# Find pod RGs - Prd
-data "azapi_resource_list" "prd_pod_rgs" {
+# Find RGs - Prd
+data "azapi_resource_list" "prd_rgs" {
   provider               = azapi.prd
   type                   = "Microsoft.Resources/resourceGroups@2022-09-01"
   parent_id              = "/subscriptions/${local.account_id_prd}"
@@ -24,14 +24,14 @@ data "azapi_resource_list" "prd_pod_rgs" {
 
 # Identify all RG names, filter by regex string
 locals {
-  dev_pod_rg_names = [for rg in jsondecode(data.azapi_resource_list.dev_pod_rgs.output).value[*].name : rg if can(regex("p\\d\\d\\d-net", rg))]
-  stg_pod_rg_names = [for rg in jsondecode(data.azapi_resource_list.stg_pod_rgs.output).value[*].name : rg if can(regex("p\\d\\d\\d-net", rg))]
-  prd_pod_rg_names = [for rg in jsondecode(data.azapi_resource_list.prd_pod_rgs.output).value[*].name : rg if can(regex("p\\d\\d\\d-net", rg))]
+  dev_rg_names = [for rg in jsondecode(data.azapi_resource_list.dev_rgs.output).value[*].name : rg if can(regex("p\\d\\d\\d-net", rg))]
+  stg_rg_names = [for rg in jsondecode(data.azapi_resource_list.stg_rgs.output).value[*].name : rg if can(regex("p\\d\\d\\d-net", rg))]
+  prd_rg_names = [for rg in jsondecode(data.azapi_resource_list.prd_rgs.output).value[*].name : rg if can(regex("p\\d\\d\\d-net", rg))]
 }
 
 # Costruct subnet names - Dev
-data "azapi_resource_list" "dev_pod_subnets" {
-  for_each               = toset(local.dev_pod_rg_names)
+data "azapi_resource_list" "dev_subnets" {
+  for_each               = toset(local.dev_rg_names)
   provider               = azapi.dev
   type                   = "Microsoft.Network/virtualNetworks/subnets@2022-09-01"
   parent_id              = "/subscriptions/${local.account_id_dev}/resourceGroups/${each.value}/providers/Microsoft.Network/virtualNetworks/vh-dev-vnet"
@@ -39,8 +39,8 @@ data "azapi_resource_list" "dev_pod_subnets" {
 }
 
 # Costruct subnet names - Stg
-data "azapi_resource_list" "stg_pod_subnets" {
-  for_each               = toset(local.stg_pod_rg_names)
+data "azapi_resource_list" "stg_subnets" {
+  for_each               = toset(local.stg_rg_names)
   provider               = azapi.stg
   type                   = "Microsoft.Network/virtualNetworks/subnets@2022-09-01"
   parent_id              = "/subscriptions/${local.account_id_stg}/resourceGroups/${each.value}/providers/Microsoft.Network/virtualNetworks/vh-stg-vnet"
@@ -48,8 +48,8 @@ data "azapi_resource_list" "stg_pod_subnets" {
 }
 
 # Costruct subnet names - Prd
-data "azapi_resource_list" "prd_pod_subnets" {
-  for_each               = toset(local.prd_pod_rg_names)
+data "azapi_resource_list" "prd_subnets" {
+  for_each               = toset(local.prd_rg_names)
   provider               = azapi.prd
   type                   = "Microsoft.Network/virtualNetworks/subnets@2022-09-01"
   parent_id              = "/subscriptions/${local.account_id_prd}/resourceGroups/${each.value}/providers/Microsoft.Network/virtualNetworks/vh-prd-vnet"
@@ -58,9 +58,9 @@ data "azapi_resource_list" "prd_pod_subnets" {
 
 # Preprocess
 locals {
-  dev_subnet_preprocess = { for rg_name, rg_values in data.azapi_resource_list.dev_pod_subnets[*] : rg_name => rg_values }
-  stg_subnet_preprocess = { for rg_name, rg_values in data.azapi_resource_list.stg_pod_subnets[*] : rg_name => rg_values }
-  prd_subnet_preprocess = { for rg_name, rg_values in data.azapi_resource_list.prd_pod_subnets[*] : rg_name => rg_values }
+  dev_subnet_preprocess = { for rg_name, rg_values in data.azapi_resource_list.dev_subnets[*] : rg_name => rg_values }
+  stg_subnet_preprocess = { for rg_name, rg_values in data.azapi_resource_list.stg_subnets[*] : rg_name => rg_values }
+  prd_subnet_preprocess = { for rg_name, rg_values in data.azapi_resource_list.prd_subnets[*] : rg_name => rg_values }
   subnet_names = flatten(
     concat(
       [
